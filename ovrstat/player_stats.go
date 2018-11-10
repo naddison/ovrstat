@@ -126,7 +126,6 @@ func playerStats(profilePath string, platform string) (*PlayerStats, error) {
 		return &ps, nil
 	}
 
-	ps.QuickPlayStats = parseDetailedStats(pd.Find("div#quickplay").First())
 	ps.CompetitiveStats = parseDetailedStats(pd.Find("div#competitive").First())
 
 	return &ps, nil
@@ -174,7 +173,6 @@ func parseHeroStats(heroStatsSelector *goquery.Selection) map[string]*topHeroSta
 		categoryID, _ := heroGroupSel.Attr("data-category-id")
 		categoryID = strings.Replace(categoryID, "overwatch.guid.0x0860000000000", "", -1)
 
-    // heroGroupSel.Find("div.progress-2").Each(func(i2 int, statSel *goquery.Selection) {
 		heroGroupSel.Find("div.ProgressBar").Each(func(i2 int, statSel *goquery.Selection) {
 			heroName := cleanJSONKey(statSel.Find("div.ProgressBar-title").Text())
 			statVal := statSel.Find("div.ProgressBar-description").Text()
@@ -245,7 +243,6 @@ func parseCareerStats(careerStatsSelector *goquery.Selection) map[string]*career
 			statType = cleanJSONKey(statType)
 
 			// Iterates over stat row
-      // statBoxSel.Find("table.data-table tbody tr").Each(func(i3 int, statSel *goquery.Selection) {
 			statBoxSel.Find("table.DataTable tbody tr").Each(func(i3 int, statSel *goquery.Selection) {
 
 				// Iterates over every stat td
