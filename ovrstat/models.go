@@ -13,7 +13,6 @@ type PlayerStats struct {
 	Rating           int             `json:"rating"`
 	RatingIcon       string          `json:"ratingIcon"`
 	GamesWon         int             `json:"gamesWon"`
-	QuickPlayStats   statsCollection `json:"quickPlayStats"`
 	CompetitiveStats statsCollection `json:"competitiveStats"`
 	Private          bool            `json:"private"`
 }
