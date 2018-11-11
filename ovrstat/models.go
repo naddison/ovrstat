@@ -6,13 +6,15 @@ type PlayerStats struct {
 	Name             string          `json:"name"`
 	Level            int             `json:"level"`
 	LevelIcon        string          `json:"levelIcon"`
+	Endorsement      int             `json:"endorsement"`
+	EndorsementIcon  string          `json:"endorsementIcon"`
 	Prestige         int             `json:"prestige"`
 	PrestigeIcon     string          `json:"prestigeIcon"`
 	Rating           int             `json:"rating"`
 	RatingIcon       string          `json:"ratingIcon"`
 	GamesWon         int             `json:"gamesWon"`
-	QuickPlayStats   statsCollection `json:"quickPlayStats"`
 	CompetitiveStats statsCollection `json:"competitiveStats"`
+	Private          bool            `json:"private"`
 }
 
 // statsCollection holds a collection of stats for a particular player
@@ -35,13 +37,13 @@ type topHeroStats struct {
 
 // careerStats holds very detailed stats for each hero
 type careerStats struct {
-	Assists       map[string]interface{} `json:"assists,omitempty"`
-	Average       map[string]interface{} `json:"average,omitempty"`
-	Best          map[string]interface{} `json:"best,omitempty"`
-	Combat        map[string]interface{} `json:"combat,omitempty"`
-	Deaths        map[string]interface{} `json:"deaths,omitempty"`
-	HeroSpecific  map[string]interface{} `json:"heroSpecific,omitempty"`
-	Game          map[string]interface{} `json:"game,omitempty"`
-	MatchAwards   map[string]interface{} `json:"matchAwards,omitempty"`
-	Miscellaneous map[string]interface{} `json:"miscellaneous,omitempty"`
+	Assists       map[string]interface{} `json:"assists"`
+	Average       map[string]interface{} `json:"average"`
+	Best          map[string]interface{} `json:"best"`
+	Combat        map[string]interface{} `json:"combat"`
+	Deaths        map[string]interface{} `json:"deaths"`
+	HeroSpecific  map[string]interface{} `json:"heroSpecific"`
+	Game          map[string]interface{} `json:"game"`
+	MatchAwards   map[string]interface{} `json:"matchAwards"`
+	Miscellaneous map[string]interface{} `json:"miscellaneous"`
 }
