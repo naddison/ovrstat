@@ -1,0 +1,16 @@
+{
+  "name": "ovrstat",
+  "profile": "default",
+  "regions": [
+    "us-east-1"
+  ],
+  "stages": {
+    "production": {
+      "domain": "ovrstat.com",
+      "zone": false
+    }
+  },
+  "error_pages": {
+    "disable": true
+  }
+}

@@ -1,2 +1,5 @@
-run.sh
 /vendor
+/bin
+/out
+out.zip
+server

@@ -1,17 +1,17 @@
-package ovrstat
+package ovrstat /* import "s32x.com/ovrstat/ovrstat" */
 
 import (
-	"bytes"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"math"
+	"net/http"
 	"regexp"
 	"strconv"
 	"strings"
 	"unicode"
 
 	"github.com/PuerkitoBio/goquery"
-	"github.com/starboy/httpclient"
 )
 
 const (
@@ -25,34 +25,28 @@ const (
 	// PlatformPSN is the platform : Playstation Network
 	PlatformPSN = "psn"
 
-	// RegionEU is the region : European Union
-	RegionEU = "eu"
-
-	// RegionUS is the region : United States
-	RegionUS = "us"
-
-	// RegionKR is region : Korea
-	RegionKR = "kr"
+	// PlatformPC is the platform : PC
+	PlatformPC = "pc"
 )
 
 var (
 	// ErrPlayerNotFound is thrown when a player doesn't exist
 	ErrPlayerNotFound = errors.New("Player not found")
 
-	// ErrInvalidPlatformOrRegion is thrown when the passed params are incorrect
-	ErrInvalidPlatformOrRegion = errors.New("Invalid platform or region")
+	// ErrInvalidPlatform is thrown when the passed params are incorrect
+	ErrInvalidPlatform = errors.New("Invalid platform")
 )
 
 // Stats retrieves player stats
 // Universal method if you don't need to differentiate it
 func Stats(area, tag string) (*PlayerStats, error) {
 	switch area {
-	case RegionEU, RegionUS, RegionKR:
-		return PCStats(area, tag) // Perform a stats lookup for PC
+	case PlatformPC:
+		return PCStats(tag) // Perform a stats lookup for PC
 	case PlatformPSN, PlatformXBL:
 		return ConsoleStats(area, tag) // Perform a stats lookup for Console
 	default:
-		return nil, ErrInvalidPlatformOrRegion
+		return nil, ErrInvalidPlatform
 	}
 }
 
@@ -62,8 +56,8 @@ func ConsoleStats(platform, tag string) (*PlayerStats, error) {
 }
 
 // PCStats retrieves player stats for PC
-func PCStats(region, tag string) (*PlayerStats, error) {
-	return playerStats(fmt.Sprintf("/pc/%s/%s", region, tag), "pc")
+func PCStats(tag string) (*PlayerStats, error) {
+	return playerStats(fmt.Sprintf("/pc/%s", tag), "pc")
 }
 
 // playerStats retrieves all Overwatch statistics for a given player
@@ -71,15 +65,20 @@ func playerStats(profilePath string, platform string) (*PlayerStats, error) {
 	// Create the profile url for scraping
 	url := baseURL + profilePath
 
-	// Performs the stats request
-	res, err := httpclient.GetBytes(url)
+	// Perform the stats request and decode the response
+	res, err := http.Get(url)
 	if err != nil {
-		return nil, ErrPlayerNotFound
+		return nil, err
 	}
+	defer res.Body.Close()
 
 	// Parses the stats request into a goquery document
+<<<<<<< HEAD
 	pd, err := goquery.NewDocumentFromReader(bytes.NewReader(res))
 
+=======
+	pd, err := goquery.NewDocumentFromReader(res.Body)
+>>>>>>> 69ba35e9ff583172e26413070b4c594291d52dac
 	if err != nil {
 		return nil, err
 	}
@@ -93,11 +92,16 @@ func playerStats(profilePath string, platform string) (*PlayerStats, error) {
 	ps := parseGeneralInfo(pd.Find("div.masthead").First())
 
 	// Get user id from script at page
-	re := regexp.MustCompile(`window\.app\.career\.init\((\d+)\,`)
-	userID := re.FindStringSubmatch(string(res))[1]
+	code, err := pd.Html()
+	if err != nil {
+		return nil, err
+	}
 
-	// Make new url to get answer from api
-	url = apiURL + userID
+	re := regexp.MustCompile(`window\.app\.career\.init\((\d+)\,`)
+	split := re.FindStringSubmatch(code)
+	if len(split) < 2 {
+		return nil, ErrPlayerNotFound
+	}
 
 	// Perform api request
 	type Platform struct {
@@ -110,7 +114,14 @@ func playerStats(profilePath string, platform string) (*PlayerStats, error) {
 		IsPublic    bool   `json:"isPublic"`
 	}
 	var platforms []Platform
-	if err := httpclient.GetJSON(url, &platforms); err != nil {
+	apires, err := http.Get(apiURL + split[1])
+	if err != nil {
+		return nil, err
+	}
+	defer apires.Body.Close()
+
+	// Decode received JSON
+	if err := json.NewDecoder(apires.Body).Decode(&platforms); err != nil {
 		return nil, ErrPlayerNotFound
 	}
 
@@ -142,9 +153,11 @@ func parseGeneralInfo(s *goquery.Selection) PlayerStats {
 	ps.LevelIcon, _ = s.Find("div.player-level").Attr("style")
 	ps.LevelIcon = strings.Replace(ps.LevelIcon, "background-image:url(", "", -1)
 	ps.LevelIcon = strings.Replace(ps.LevelIcon, ")", "", -1)
-	ps.PrestigeIcon, _ = s.Find("div.player-level").Attr("style")
+	ps.LevelIcon = strings.TrimSpace(ps.LevelIcon)
+	ps.PrestigeIcon, _ = s.Find("div.player-rank").Attr("style")
 	ps.PrestigeIcon = strings.Replace(ps.PrestigeIcon, "background-image:url(", "", -1)
 	ps.PrestigeIcon = strings.Replace(ps.PrestigeIcon, ")", "", -1)
+	ps.PrestigeIcon = strings.TrimSpace(ps.PrestigeIcon)
 	ps.Endorsement, _ = strconv.Atoi(s.Find("div.endorsement-level div.u-center").First().Text())
 	ps.EndorsementIcon, _ = s.Find("div.EndorsementIcon").Attr("style")
 	ps.EndorsementIcon = strings.Replace(ps.EndorsementIcon, "background-image:url(", "", -1)
@@ -171,8 +184,12 @@ func parseHeroStats(heroStatsSelector *goquery.Selection) map[string]*topHeroSta
 
 	heroStatsSelector.Find("div.progress-category").Each(func(i int, heroGroupSel *goquery.Selection) {
 		categoryID, _ := heroGroupSel.Attr("data-category-id")
+<<<<<<< HEAD
 		categoryID = strings.Replace(categoryID, "overwatch.guid.0x0860000000000", "", -1)
 
+=======
+		categoryID = strings.Replace(categoryID, "0x0860000000000", "", -1)
+>>>>>>> 69ba35e9ff583172e26413070b4c594291d52dac
 		heroGroupSel.Find("div.ProgressBar").Each(func(i2 int, statSel *goquery.Selection) {
 			heroName := cleanJSONKey(statSel.Find("div.ProgressBar-title").Text())
 			statVal := statSel.Find("div.ProgressBar-description").Text()

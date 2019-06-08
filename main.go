@@ -1,45 +1,51 @@
-package main
+package main /* import "s32x.com/ovrstat" */
 
 import (
-	"fmt"
+	"log"
 	"net/http"
 	"os"
 
 	"github.com/labstack/echo"
-	"github.com/labstack/echo/middleware"
-	"github.com/barbershoplabs/ovrstat/ovrstat"
+	"github.com/labstack/echo/v4/middleware"
+	"s32x.com/ovrstat/ovrstat"
 )
 
+var port = getenv("PORT", "8080")
+
 var (
-	version = "0.4"
-	port    = getEnv("PORT", "8080")
-
 	// ErrPlayerNotFound is thrown when a request is made for a player that doesn't exist
-	ErrPlayerNotFound = echo.NewHTTPError(http.StatusNotFound, "Player not found")
-
+	ErrPlayerNotFound = echo.NewHTTPError(http.StatusInternalServerError, "Player not found")
 	// ErrFailedLookup is thrown when there is an error retrieving an accounts stats
 	ErrFailedLookup = echo.NewHTTPError(http.StatusInternalServerError, "Failed to perform lookup")
 )
 
 func main() {
-	fmt.Printf("Ovrstat %s - Simple Overwatch Stats API\n", version)
-
-	// Create a server Builder and bind the endpoints
+	// Create a new echo Echo and bind all middleware
 	e := echo.New()
+	e.HideBanner = true
+
+	// Bind middleware
+	e.Pre(middleware.RemoveTrailingSlashWithConfig(
+		middleware.TrailingSlashConfig{
+			RedirectCode: http.StatusPermanentRedirect,
+		}))
 	e.Use(middleware.Logger())
 	e.Use(middleware.Recover())
+	e.Pre(middleware.Secure())
+	e.Use(middleware.Gzip())
 	e.Use(middleware.CORS())
 
-	// Handle stats requests
+	// Serve the static web content on the base echo instance
+	e.Static("*", "./static")
+
+	// Handle stats API requests
 	e.GET("/stats/pc/:area/:tag", stats)
 	e.GET("/stats/:area/:tag", stats)
-
-	// Serve the static web content
-	e.Static("/", "web")
-	e.Static("/assets", "web/assets")
+	e.GET("/healthcheck", func(c echo.Context) error {
+		return c.NoContent(http.StatusOK)
+	})
 
 	// Listen on the specified port
-	fmt.Printf("Listening for requests on port : %s", port)
 	e.Logger.Fatal(e.Start(":" + port))
 }
 
@@ -56,11 +62,14 @@ func stats(c echo.Context) error {
 	return c.JSON(http.StatusOK, stats)
 }
 
-// getEnv retrieves variables from the environment and falls back to a passed
-// fallback variable if it isn't already set
-func getEnv(key, fallback string) string {
-	if value, ok := os.LookupEnv(key); ok {
-		return value
+// getenv attempts to retrieve and return a variable from the environment. If it
+// fails it will either crash or failover to a passed default value
+func getenv(key string, def ...string) string {
+	if v, ok := os.LookupEnv(key); ok {
+		return v
 	}
-	return fallback
+	if len(def) == 0 {
+		log.Fatalf("%s not defined in environment", key)
+	}
+	return def[0]
 }

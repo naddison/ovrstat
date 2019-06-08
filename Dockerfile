@@ -1,9 +1,27 @@
+# ============================== BINARY BUILDER ==============================
+FROM golang:latest as builder
+
+# Copy in the source
+COPY . /src
+WORKDIR /src
+
+# Dependencies
+RUN apt-get update -y && \
+    apt-get upgrade -y
+RUN GO111MODULE=on go mod vendor
+
+# Vendor, Test and Build the Binary
+RUN GO111MODULE=on go mod vendor
+RUN go test ./...
+RUN CGO_ENABLED=0 go build -o ./bin/server
+
+# =============================== FINAL IMAGE ===============================
 FROM alpine:latest
-RUN apk add --no-cache ca-certificates
 
-#https://stackoverflow.com/a/35613430/9665833
-RUN mkdir /lib64 && ln -s /lib/libc.musl-x86_64.so.1 /lib64/ld-linux-x86-64.so.2
+# Dependencies
+RUN apk update && apk add --no-cache ca-certificates
 
-ADD bin/ovrstat /usr/local/bin/ovrstat
-ADD /web /web/
-CMD ovrstat
+# Static files and Binary
+COPY --from=builder /src/static /static
+COPY --from=builder /src/bin/server /usr/local/bin/server
+CMD ["server"]
