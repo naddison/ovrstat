@@ -73,12 +73,7 @@ func playerStats(profilePath string, platform string) (*PlayerStats, error) {
 	defer res.Body.Close()
 
 	// Parses the stats request into a goquery document
-<<<<<<< HEAD
-	pd, err := goquery.NewDocumentFromReader(bytes.NewReader(res))
-
-=======
 	pd, err := goquery.NewDocumentFromReader(res.Body)
->>>>>>> 69ba35e9ff583172e26413070b4c594291d52dac
 	if err != nil {
 		return nil, err
 	}
@@ -184,12 +179,7 @@ func parseHeroStats(heroStatsSelector *goquery.Selection) map[string]*topHeroSta
 
 	heroStatsSelector.Find("div.progress-category").Each(func(i int, heroGroupSel *goquery.Selection) {
 		categoryID, _ := heroGroupSel.Attr("data-category-id")
-<<<<<<< HEAD
-		categoryID = strings.Replace(categoryID, "overwatch.guid.0x0860000000000", "", -1)
-
-=======
 		categoryID = strings.Replace(categoryID, "0x0860000000000", "", -1)
->>>>>>> 69ba35e9ff583172e26413070b4c594291d52dac
 		heroGroupSel.Find("div.ProgressBar").Each(func(i2 int, statSel *goquery.Selection) {
 			heroName := cleanJSONKey(statSel.Find("div.ProgressBar-title").Text())
 			statVal := statSel.Find("div.ProgressBar-description").Text()
